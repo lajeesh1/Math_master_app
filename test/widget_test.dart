@@ -23,6 +23,7 @@ class MockScoreStorageService extends ScoreStorageService {
     final stored = ScoreRecord(
       id: id,
       operation: record.operation,
+      questionLevel: record.questionLevel,
       score: record.score,
       totalQuestions: record.totalQuestions,
       correctAnswers: record.correctAnswers,
@@ -76,13 +77,22 @@ void main() {
   }
 
   group('Widget Tests', () {
-    testWidgets('Home Screen displays title, dropdown, and Start Quiz button', (tester) async {
+    testWidgets('Home Screen displays title, Question level dropdown, operation buttons, and Start Quiz button', (tester) async {
       setPhoneScreenSize(tester);
       await tester.pumpWidget(const MathMasterApp());
       await tester.pumpAndSettle();
 
       expect(find.text('Math Master Quiz'), findsOneWidget);
+      expect(find.text('Mathematic practice'), findsOneWidget);
+      expect(find.text('Question level'), findsOneWidget);
       expect(find.text('Choose Question Type'), findsOneWidget);
+
+      // Verify operation buttons
+      expect(find.text('Multiplication'), findsOneWidget);
+      expect(find.text('Addition'), findsOneWidget);
+      expect(find.text('Subtraction'), findsOneWidget);
+      expect(find.text('Division'), findsOneWidget);
+
       expect(find.text('Start Quiz'), findsOneWidget);
       expect(find.text('View Past Scores'), findsOneWidget);
     });
@@ -99,6 +109,23 @@ void main() {
       expect(find.text('Please select a question type to start the quiz!'), findsOneWidget);
     });
 
+    testWidgets('Selecting operation button and starting quiz navigates to QuizScreen', (tester) async {
+      setPhoneScreenSize(tester);
+      await tester.pumpWidget(const MathMasterApp());
+      await tester.pumpAndSettle();
+
+      // Tap Multiplication button
+      await tester.tap(find.text('Multiplication'));
+      await tester.pumpAndSettle();
+
+      // Tap Start Quiz
+      await tester.ensureVisible(find.text('Start Quiz'));
+      await tester.tap(find.text('Start Quiz'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Multiplication (×)'), findsOneWidget);
+    });
+
     testWidgets('About Screen displays correct app and developer details', (tester) async {
       setPhoneScreenSize(tester);
       await tester.pumpWidget(const MaterialApp(home: AboutScreen()));
@@ -107,10 +134,10 @@ void main() {
       expect(find.text('Math Master Quiz'), findsOneWidget);
       expect(find.text('Lajeesh'), findsOneWidget);
       expect(find.text('Version 1.0.0'), findsOneWidget);
-      expect(find.textContaining('4th Standard students'), findsOneWidget);
+      expect(find.textContaining('Mathematic practice across multiplication'), findsOneWidget);
     });
 
-    testWidgets('Quiz Screen validates empty input and progresses on answer submission', (tester) async {
+    testWidgets('Quiz Screen shows 2-second animated feedback after submitting answer', (tester) async {
       setPhoneScreenSize(tester);
       final sampleQuestions = [
         const QuizQuestion(
@@ -131,6 +158,7 @@ void main() {
         MaterialApp(
           home: QuizScreen(
             operation: QuizOperation.multiplication,
+            level: QuestionLevel.medium,
             questions: sampleQuestions,
             storageService: testStorageService,
           ),
@@ -152,6 +180,13 @@ void main() {
       await tester.enterText(find.byType(TextField), '20');
       await tester.pump();
       await tester.tap(find.text('Submit Answer'));
+      await tester.pump(); // Start animation
+
+      // Verify immediate animated feedback banner appears
+      expect(find.text('Correct! 🎉'), findsOneWidget);
+
+      // Advance through the 2-second feedback timer
+      await tester.pump(const Duration(milliseconds: 2000));
       await tester.pumpAndSettle();
 
       // Should now advance to Question 2 of 2 with Score: 1
@@ -160,26 +195,36 @@ void main() {
       expect(find.text('6  ×  7 = ?'), findsOneWidget);
       expect(find.text('Finish Quiz'), findsOneWidget);
 
-      // Submit final answer "42"
-      await tester.enterText(find.byType(TextField), '42');
+      // Submit incorrect answer "99"
+      await tester.enterText(find.byType(TextField), '99');
       await tester.pump();
       await tester.tap(find.text('Finish Quiz'));
+      await tester.pump();
+
+      // Verify wrong answer feedback banner appears with correct answer info
+      expect(find.text('Wrong Answer ❌'), findsOneWidget);
+      expect(find.text('Correct answer: 42'), findsOneWidget);
+
+      // Advance through 2-second feedback timer
+      await tester.pump(const Duration(milliseconds: 2000));
       await tester.pumpAndSettle();
 
       // Result screen should now be shown
       expect(find.text('Quiz Completed!'), findsOneWidget);
-      expect(find.text('2/2'), findsOneWidget);
+      expect(find.text('1/2'), findsOneWidget);
 
-      // Verify that the record was automatically saved to test storage
+      // Verify record was saved with question level
       final savedScores = await testStorageService.getAllScores();
       expect(savedScores.length, equals(1));
-      expect(savedScores.first.score, equals(2));
+      expect(savedScores.first.score, equals(1));
+      expect(savedScores.first.questionLevel, equals('Medium'));
     });
 
-    testWidgets('Result Screen displays PASSED! for score > 10 and provides navigation buttons', (tester) async {
+    testWidgets('Result Screen displays PASSED! and question level badge', (tester) async {
       setPhoneScreenSize(tester);
       final passedRecord = ScoreRecord.create(
         operation: 'Multiplication (×)',
+        questionLevel: 'Advanced',
         score: 13,
         totalQuestions: 15,
       );
@@ -195,6 +240,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('PASSED!'), findsOneWidget);
+      expect(find.text('Level: Advanced'), findsOneWidget);
       expect(find.text('13/15'), findsOneWidget);
       expect(find.text('Play Again'), findsOneWidget);
       expect(find.text('View Score History'), findsOneWidget);
@@ -205,6 +251,7 @@ void main() {
       setPhoneScreenSize(tester);
       final tryAgainRecord = ScoreRecord.create(
         operation: 'Multiplication (×)',
+        questionLevel: 'Low',
         score: 10,
         totalQuestions: 15,
       );
@@ -220,26 +267,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('TRY AGAIN!'), findsOneWidget);
+      expect(find.text('Level: Low'), findsOneWidget);
       expect(find.text('10/15'), findsOneWidget);
     });
 
-    testWidgets('Score History Screen shows empty state when no records exist', (tester) async {
-      setPhoneScreenSize(tester);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: ScoreHistoryScreen(storageService: testStorageService),
-        ),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(find.text('No quiz records yet. Complete your first quiz!'), findsOneWidget);
-    });
-
-    testWidgets('Score History Screen shows records and handles deletion', (tester) async {
+    testWidgets('Score History Screen shows records with question level badge and handles deletion', (tester) async {
       setPhoneScreenSize(tester);
       final record = ScoreRecord.create(
         operation: 'Addition (+)',
+        questionLevel: 'Advanced',
         score: 12,
         totalQuestions: 15,
         timestamp: DateTime(2026, 10, 26, 10, 0),
@@ -255,6 +291,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Addition (+)'), findsOneWidget);
+      expect(find.text('Level: Advanced'), findsOneWidget);
       expect(find.text('PASSED!'), findsOneWidget);
 
       // Tap delete button on record

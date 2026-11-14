@@ -14,7 +14,7 @@ class ScoreStorageService {
 
   static const String tableName = 'score_history';
   static const String dbName = 'math_master_quiz.db';
-  static const int dbVersion = 1;
+  static const int dbVersion = 2;
 
   /// Returns the existing database instance or initializes it.
   Future<Database> get database async {
@@ -31,6 +31,7 @@ class ScoreStorageService {
       path,
       version: dbVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -39,6 +40,7 @@ class ScoreStorageService {
       CREATE TABLE $tableName (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         operation TEXT NOT NULL,
+        question_level TEXT NOT NULL DEFAULT 'Medium',
         score INTEGER NOT NULL,
         total_questions INTEGER NOT NULL,
         correct_answers INTEGER NOT NULL,
@@ -48,6 +50,18 @@ class ScoreStorageService {
         timestamp TEXT NOT NULL
       )
     ''');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute(
+          "ALTER TABLE $tableName ADD COLUMN question_level TEXT NOT NULL DEFAULT 'Medium'",
+        );
+      } catch (e) {
+        // Column may already exist
+      }
+    }
   }
 
   /// Inserts a new score record into the database. Returns the generated record ID.
@@ -60,7 +74,6 @@ class ScoreStorageService {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     } catch (e) {
-      // Re-throw or handle accordingly
       throw Exception('Failed to save score record: $e');
     }
   }

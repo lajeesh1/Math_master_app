@@ -293,16 +293,41 @@ class _ScoreHistoryScreenState extends State<ScoreHistoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: Operation Name, Status Badge, Delete Button
+            // Top Row: Operation Name & Level Badge, Status Badge, Delete Button
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    record.operation,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        record.operation,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _getLevelColor(record.questionLevel).withAlpha(30),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _getLevelColor(record.questionLevel).withAlpha(120),
+                          ),
+                        ),
+                        child: Text(
+                          'Level: ${record.questionLevel}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _getLevelColor(record.questionLevel),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Container(
@@ -404,5 +429,17 @@ class _ScoreHistoryScreenState extends State<ScoreHistoryScreen> {
         ),
       ),
     );
+  }
+
+  Color _getLevelColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'low':
+        return Colors.green.shade700;
+      case 'advanced':
+        return Colors.deepPurple.shade700;
+      case 'medium':
+      default:
+        return Colors.orange.shade800;
+    }
   }
 }

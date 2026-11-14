@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 class ScoreRecord {
   final int? id;
   final String operation;
+  final String questionLevel; // 'Low', 'Medium', 'Advanced'
   final int score;
   final int totalQuestions;
   final int correctAnswers;
@@ -15,6 +16,7 @@ class ScoreRecord {
   const ScoreRecord({
     this.id,
     required this.operation,
+    this.questionLevel = 'Medium',
     required this.score,
     this.totalQuestions = 15,
     required this.correctAnswers,
@@ -28,6 +30,7 @@ class ScoreRecord {
   factory ScoreRecord.create({
     int? id,
     required String operation,
+    String questionLevel = 'Medium',
     required int score,
     int totalQuestions = 15,
     DateTime? timestamp,
@@ -40,6 +43,7 @@ class ScoreRecord {
     return ScoreRecord(
       id: id,
       operation: operation,
+      questionLevel: questionLevel,
       score: score,
       totalQuestions: totalQuestions,
       correctAnswers: correct,
@@ -55,6 +59,7 @@ class ScoreRecord {
     return {
       if (id != null) 'id': id,
       'operation': operation,
+      'question_level': questionLevel,
       'score': score,
       'total_questions': totalQuestions,
       'correct_answers': correctAnswers,
@@ -70,6 +75,7 @@ class ScoreRecord {
     return ScoreRecord(
       id: map['id'] as int?,
       operation: map['operation'] as String,
+      questionLevel: map['question_level'] as String? ?? 'Medium',
       score: map['score'] as int,
       totalQuestions: map['total_questions'] as int? ?? 15,
       correctAnswers: map['correct_answers'] as int,

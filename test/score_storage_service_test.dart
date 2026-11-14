@@ -19,12 +19,13 @@ void main() {
       testDb = await databaseFactory.openDatabase(
         inMemoryDatabasePath,
         options: OpenDatabaseOptions(
-          version: 1,
+          version: 2,
           onCreate: (db, version) async {
             await db.execute('''
               CREATE TABLE ${ScoreStorageService.tableName} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 operation TEXT NOT NULL,
+                question_level TEXT NOT NULL DEFAULT 'Medium',
                 score INTEGER NOT NULL,
                 total_questions INTEGER NOT NULL,
                 correct_answers INTEGER NOT NULL,
@@ -45,14 +46,16 @@ void main() {
       await storageService.close();
     });
 
-    test('Insert score record and retrieve ordered newest first', () async {
+    test('Insert score record and retrieve ordered newest first with question level', () async {
       final record1 = ScoreRecord.create(
         operation: 'Multiplication (×)',
+        questionLevel: 'Low',
         score: 12,
         timestamp: DateTime(2026, 10, 26, 9, 0),
       );
       final record2 = ScoreRecord.create(
         operation: 'Addition (+)',
+        questionLevel: 'Advanced',
         score: 8,
         timestamp: DateTime(2026, 10, 26, 10, 0),
       );
@@ -68,11 +71,13 @@ void main() {
 
       // Newest (record2 at 10:00) should be first
       expect(allRecords[0].operation, equals('Addition (+)'));
+      expect(allRecords[0].questionLevel, equals('Advanced'));
       expect(allRecords[0].score, equals(8));
       expect(allRecords[0].resultStatus, equals('TRY AGAIN!'));
 
       // Older (record1 at 9:00) should be second
       expect(allRecords[1].operation, equals('Multiplication (×)'));
+      expect(allRecords[1].questionLevel, equals('Low'));
       expect(allRecords[1].score, equals(12));
       expect(allRecords[1].resultStatus, equals('PASSED!'));
     });
@@ -80,11 +85,13 @@ void main() {
     test('Delete score record removes only selected record', () async {
       final r1 = ScoreRecord.create(
         operation: 'Multiplication (×)',
+        questionLevel: 'Medium',
         score: 14,
         timestamp: DateTime(2026, 10, 26, 8, 0),
       );
       final r2 = ScoreRecord.create(
         operation: 'Division (÷)',
+        questionLevel: 'Advanced',
         score: 11,
         timestamp: DateTime(2026, 10, 26, 8, 30),
       );
@@ -103,14 +110,15 @@ void main() {
       expect(list.length, equals(1));
       expect(list.first.id, equals(id2));
       expect(list.first.operation, equals('Division (÷)'));
+      expect(list.first.questionLevel, equals('Advanced'));
     });
 
     test('Clear all scores empties the database', () async {
       await storageService.insertScore(
-        ScoreRecord.create(operation: 'Addition (+)', score: 10),
+        ScoreRecord.create(operation: 'Addition (+)', questionLevel: 'Low', score: 10),
       );
       await storageService.insertScore(
-        ScoreRecord.create(operation: 'Subtraction (−)', score: 15),
+        ScoreRecord.create(operation: 'Subtraction (−)', questionLevel: 'Medium', score: 15),
       );
 
       var list = await storageService.getAllScores();

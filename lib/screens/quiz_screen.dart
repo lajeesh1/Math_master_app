@@ -7,15 +7,17 @@ import '../services/score_storage_service.dart';
 import '../widgets/quiz_question_card.dart';
 import 'result_screen.dart';
 
-/// Screen where students answer the 15 quiz questions one by one.
+/// Screen where students answer the 15 quiz questions one by one with animated immediate feedback.
 class QuizScreen extends StatefulWidget {
   final QuizOperation operation;
+  final QuestionLevel level;
   final List<QuizQuestion> questions;
   final ScoreStorageService? storageService;
 
   const QuizScreen({
     super.key,
     required this.operation,
+    this.level = QuestionLevel.medium,
     required this.questions,
     this.storageService,
   });
@@ -24,11 +26,20 @@ class QuizScreen extends StatefulWidget {
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
+class _QuizScreenState extends State<QuizScreen> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   int _score = 0;
   bool _isSubmitting = false;
   String? _errorMessage;
+
+  // Immediate feedback state (Requirement 3: 2-second small animation)
+  bool _showFeedback = false;
+  bool _isLastAnswerCorrect = false;
+  int? _lastCorrectAnswer;
+
+  late final AnimationController _animController;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _fadeAnimation;
 
   final TextEditingController _answerController = TextEditingController();
   final FocusNode _answerFocusNode = FocusNode();
@@ -36,6 +47,21 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.elasticOut,
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeIn,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _answerFocusNode.requestFocus();
     });
@@ -43,6 +69,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   void dispose() {
+    _animController.dispose();
     _answerController.dispose();
     _answerFocusNode.dispose();
     super.dispose();
@@ -67,11 +94,6 @@ class _QuizScreenState extends State<QuizScreen> {
       return;
     }
 
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
-
     final currentQuestion = widget.questions[_currentIndex];
     final isCorrect = currentQuestion.isCorrect(userAnswer);
 
@@ -79,12 +101,26 @@ class _QuizScreenState extends State<QuizScreen> {
       _score++;
     }
 
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+      _showFeedback = true;
+      _isLastAnswerCorrect = isCorrect;
+      _lastCorrectAnswer = currentQuestion.correctAnswer;
+    });
+
+    _animController.forward(from: 0.0);
+
+    // Display right/wrong feedback for 2 seconds with animation
+    await Future.delayed(const Duration(milliseconds: 2000));
+    if (!mounted) return;
+
     // Check if this was the last question
     if (_currentIndex + 1 >= widget.questions.length) {
-      // Quiz completed!
       final totalQuestions = widget.questions.length;
       final record = ScoreRecord.create(
         operation: widget.operation.displayName,
+        questionLevel: widget.level.displayName,
         score: _score,
         totalQuestions: totalQuestions,
         timestamp: DateTime.now(),
@@ -100,7 +136,6 @@ class _QuizScreenState extends State<QuizScreen> {
 
       if (!mounted) return;
 
-      // Navigate to Results Screen replacing the quiz screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -112,8 +147,10 @@ class _QuizScreenState extends State<QuizScreen> {
       );
     } else {
       // Advance to next question
+      _animController.reset();
       setState(() {
         _currentIndex++;
+        _showFeedback = false;
         _answerController.clear();
         _isSubmitting = false;
       });
@@ -169,8 +206,8 @@ class _QuizScreenState extends State<QuizScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            widget.operation.displayName,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            '${widget.operation.displayName} • ${widget.level.displayName}',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: true,
         ),
@@ -248,7 +285,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
                     // Question Card
                     QuizQuestionCard(
@@ -257,12 +294,88 @@ class _QuizScreenState extends State<QuizScreen> {
                       totalQuestions: totalQuestions,
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
+
+                    // Immediate Answer Feedback Animation Banner
+                    if (_showFeedback)
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: ScaleTransition(
+                          scale: _scaleAnimation,
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 20),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: _isLastAnswerCorrect
+                                  ? Colors.green.shade50
+                                  : Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                color: _isLastAnswerCorrect
+                                    ? Colors.green.shade600
+                                    : Colors.red.shade600,
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (_isLastAnswerCorrect ? Colors.green : Colors.red)
+                                      .withAlpha(40),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _isLastAnswerCorrect
+                                      ? Icons.check_circle_rounded
+                                      : Icons.cancel_rounded,
+                                  color: _isLastAnswerCorrect
+                                      ? Colors.green.shade700
+                                      : Colors.red.shade700,
+                                  size: 34,
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _isLastAnswerCorrect ? 'Correct! 🎉' : 'Wrong Answer ❌',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: _isLastAnswerCorrect
+                                              ? Colors.green.shade900
+                                              : Colors.red.shade900,
+                                        ),
+                                      ),
+                                      if (!_isLastAnswerCorrect && _lastCorrectAnswer != null)
+                                        Text(
+                                          'Correct answer: $_lastCorrectAnswer',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.red.shade800,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
 
                     // Answer Input Field
                     TextField(
                       controller: _answerController,
                       focusNode: _answerFocusNode,
+                      enabled: !_isSubmitting,
                       keyboardType: TextInputType.number,
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
@@ -324,7 +437,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
                     // Prominent Submit Answer Button
                     ElevatedButton(

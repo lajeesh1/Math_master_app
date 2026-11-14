@@ -108,7 +108,7 @@ class AboutScreen extends StatelessWidget {
                             icon: Icons.lightbulb_outline_rounded,
                             label: 'Purpose',
                             value:
-                                'A simple mathematics learning app designed to help 4th Standard students practise multiplication, addition, subtraction and division.',
+                                'A simple mathematics learning app designed for Mathematic practice across multiplication, addition, subtraction and division.',
                             theme: theme,
                           ),
                           const Divider(height: 32),
@@ -139,7 +139,7 @@ class AboutScreen extends StatelessWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Made with care to make learning math fun, exciting, and rewarding for students!',
+                            'Made with care to make Mathematic practice fun, exciting, and rewarding for students!',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,

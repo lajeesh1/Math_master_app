@@ -101,20 +101,45 @@ class ResultScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withAlpha(30),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Operation: ${record.operation}',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withAlpha(30),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                record.operation,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
                             ),
-                          ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _getLevelColor(record.questionLevel).withAlpha(30),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _getLevelColor(record.questionLevel).withAlpha(120),
+                                ),
+                              ),
+                              child: Text(
+                                'Level: ${record.questionLevel}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: _getLevelColor(record.questionLevel),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -329,5 +354,17 @@ class ResultScreen extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Color _getLevelColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'low':
+        return Colors.green.shade700;
+      case 'advanced':
+        return Colors.deepPurple.shade700;
+      case 'medium':
+      default:
+        return Colors.orange.shade800;
+    }
   }
 }

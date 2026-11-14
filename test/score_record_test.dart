@@ -7,11 +7,13 @@ void main() {
       // Score 0: TRY AGAIN!
       final r0 = ScoreRecord.create(
         operation: 'Multiplication (×)',
+        questionLevel: 'Low',
         score: 0,
         totalQuestions: 15,
       );
       expect(r0.resultStatus, equals('TRY AGAIN!'));
       expect(r0.isPassed, isFalse);
+      expect(r0.questionLevel, equals('Low'));
       expect(r0.correctAnswers, equals(0));
       expect(r0.incorrectAnswers, equals(15));
       expect(r0.percentage, equals(0.0));
@@ -19,6 +21,7 @@ void main() {
       // Score 7: TRY AGAIN!
       final r7 = ScoreRecord.create(
         operation: 'Addition (+)',
+        questionLevel: 'Medium',
         score: 7,
         totalQuestions: 15,
       );
@@ -30,6 +33,7 @@ void main() {
       // Score 10: strictly TRY AGAIN! (boundary test)
       final r10 = ScoreRecord.create(
         operation: 'Subtraction (−)',
+        questionLevel: 'Advanced',
         score: 10,
         totalQuestions: 15,
       );
@@ -41,6 +45,7 @@ void main() {
       // Score 11: strictly PASSED! (boundary test)
       final r11 = ScoreRecord.create(
         operation: 'Multiplication (×)',
+        questionLevel: 'Medium',
         score: 11,
         totalQuestions: 15,
       );
@@ -52,6 +57,7 @@ void main() {
       // Score 15: PASSED! (perfect score)
       final r15 = ScoreRecord.create(
         operation: 'Division (÷)',
+        questionLevel: 'Advanced',
         score: 15,
         totalQuestions: 15,
       );
@@ -62,11 +68,12 @@ void main() {
       expect(r15.percentage, equals(100.0));
     });
 
-    test('SQLite serialization toMap and fromMap', () {
+    test('SQLite serialization toMap and fromMap includes questionLevel', () {
       final now = DateTime(2026, 10, 26, 10, 30);
       final original = ScoreRecord.create(
         id: 1,
         operation: 'Multiplication (×)',
+        questionLevel: 'Advanced',
         score: 12,
         totalQuestions: 15,
         timestamp: now,
@@ -77,6 +84,7 @@ void main() {
 
       expect(restored.id, equals(1));
       expect(restored.operation, equals('Multiplication (×)'));
+      expect(restored.questionLevel, equals('Advanced'));
       expect(restored.score, equals(12));
       expect(restored.totalQuestions, equals(15));
       expect(restored.correctAnswers, equals(12));
