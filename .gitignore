@@ -32,12 +32,19 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/android/build/
 
 # Symbolication related
 app.*.symbols
 
 # Obfuscation related
 app.*.map.json
+
+# Android signing keystores & secrets
+*.jks
+*.keystore
+key.properties
+**/android/key.properties
 
 # Android Studio will place build artifacts here
 /android/app/debug
